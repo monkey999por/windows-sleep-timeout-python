@@ -4,12 +4,25 @@
 
 ## 変更前
 
-PowerShell でこのファイルがあるディレクトリに移動します。`.venv` がまだない場合だけ `uv venv .venv` で作成します。以下のスクリプト実行はすべて `.venv` 内の Python を指定します。既存の別の仮想環境を使う場合は、`Scripts\python.exe` のパスを読み替えてください。
+PowerShell でこのファイルがあるディレクトリに移動します。次のどちらか一方を選び、**同じ PowerShell セッション**で最後の復元まで実行します。
 
-まず仮想環境の Python と、変更前の AC/DC のスリープ時間を確認します。
+**仮想環境を使う場合**：`.venv` がまだなければ `uv venv .venv` で作成し、以下を実行します。既存の別の仮想環境ならその `Scripts\python.exe` のパスに読み替えます。
 
 ```powershell
-.\.venv\Scripts\python.exe --version
+$sleepPython = '.\.venv\Scripts\python.exe'
+```
+
+**仮想環境を使わない場合**：ホストの Python が `python` コマンドで使えるなら `$sleepPython = 'python'` とします。この PC のように `python` が Microsoft Store のエイリアスの場合は、次のように `uv` からホストの Python を指定します。
+
+```powershell
+$sleepPython = uv python find --system 3.14
+```
+
+まず選んだ Python と、変更前の AC/DC のスリープ時間を確認します。`sys.prefix == sys.base_prefix` はホスト実行なら `True`、仮想環境なら `False` です。
+
+```powershell
+& $sleepPython --version
+& $sleepPython -c 'import sys; print(sys.prefix == sys.base_prefix)'
 powercfg /getactivescheme
 powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 ```
@@ -21,10 +34,10 @@ powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 以下を1行ずつ実行します。各コマンドの終了コードは PowerShell の `$LASTEXITCODE` で確認できます。`0` 以外の場合は次へ進まず、エラーを確認してください。
 
 ```powershell
-.\.venv\Scripts\python.exe .\sleep_settings.py --ac 30 --dc 30
-.\.venv\Scripts\python.exe .\sleep_settings.py --ac 0 --dc 0
-.\.venv\Scripts\python.exe .\sleep_settings.py --ac 30
-.\.venv\Scripts\python.exe .\sleep_settings.py --dc 15
+& $sleepPython .\sleep_settings.py --ac 30 --dc 30
+& $sleepPython .\sleep_settings.py --ac 0 --dc 0
+& $sleepPython .\sleep_settings.py --ac 30
+& $sleepPython .\sleep_settings.py --dc 15
 ```
 
 | 実行後 | 電源接続時（AC） | バッテリー時（DC） |
@@ -47,7 +60,7 @@ powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 最初に記録した AC/DC が整数の分数なら、その値を指定して元に戻します。例えば開始時に AC 0分、DC 45分だった場合は次を実行します。
 
 ```powershell
-.\.venv\Scripts\python.exe .\sleep_settings.py --ac 0 --dc 45
+& $sleepPython .\sleep_settings.py --ac 0 --dc 45
 powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 ```
 

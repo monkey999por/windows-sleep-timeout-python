@@ -31,6 +31,21 @@ set_sleep_timeout(ac_minutes=0, dc_minutes=30)
 
 `venv` や `uv venv` 内でも使えます。このスクリプトは Python 標準ライブラリと、仮想環境の外にある Windows の `powercfg` を使います。仮想環境にライブラリを追加する必要はありません。既に別の仮想環境がある場合は、その `Scripts\python.exe` に読み替えてください。仮想環境を有効化済みなら `python .\sleep_settings.py --ac 0 --dc 30` でも実行できます。
 
+## 仮想環境を使わない場合
+
+ホストの Python が `python` コマンドで使える場合は、仮想環境を作らずに実行できます。
+
+```powershell
+python .\sleep_settings.py --ac 0 --dc 30
+```
+
+この PC のように `python` が Microsoft Store のエイリアスの場合は、`uv` で仮想環境以外の Python を明示的に探して実行します。`--system` を付けない `uv python find` は、カレントディレクトリの `.venv` を選ぶことがあります。
+
+```powershell
+$hostPython = uv python find --system 3.14
+& $hostPython .\sleep_settings.py --ac 0 --dc 30
+```
+
 設定を読むときは `powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE` を実行します。設定アプリでの目視確認と元の値への戻し方は [MANUAL_TEST.md](MANUAL_TEST.md) を参照してください。
 
 参照：[Microsoft の powercfg コマンド仕様](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options)。
