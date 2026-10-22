@@ -4,7 +4,7 @@
 
 ## 変更前
 
-PowerShell でこのファイルがあるディレクトリに移動します。次のどちらか一方を選び、**同じ PowerShell セッション**で最後の復元まで実行します。
+PowerShell でこのファイルがあるディレクトリに移動します。次のどちらか一方を選び、以降のコマンドで使う Python を `$sleepPython` に設定します。
 
 **仮想環境を使う場合**：`.venv` がまだなければ `uv venv .venv` で作成し、以下を実行します。既存の別の仮想環境ならその `Scripts\python.exe` のパスに読み替えます。
 
@@ -23,21 +23,22 @@ $sleepPython = uv python find --system 3.14
 ```powershell
 & $sleepPython --version
 & $sleepPython -c 'import sys; print(sys.prefix == sys.base_prefix)'
+& $sleepPython .\main.py --show
 powercfg /getactivescheme
 powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 ```
 
-`Current AC Power Setting Index` と `Current DC Power Setting Index`（日本語環境では対応する AC/DC の設定値）が、16進数表記の**秒数**です。例えば `0x00000000` は「なし」、`0x00000a8c` は2700秒＝45分です。開始時の値を記録し、最後に同じ値へ戻します。この PC の前回確認値は AC 0分、DC 45分ですが、実際の作業開始時の値を優先してください。
+`Current AC Power Setting Index` と `Current DC Power Setting Index`（日本語環境では対応する AC/DC の設定値）が、16進数表記の**秒数**です。例えば `0x00000000` は「なし」、`0x00000a8c` は2700秒＝45分です。`--show` の結果も記録します。以前の変更で未復元の保存データがある場合は、開始前に `--restore` を実行してください。
 
 ## 変更して画面で確認
 
 以下を1行ずつ実行します。各コマンドの終了コードは PowerShell の `$LASTEXITCODE` で確認できます。`0` 以外の場合は次へ進まず、エラーを確認してください。
 
 ```powershell
-& $sleepPython .\sleep_settings.py --ac 30 --dc 30
-& $sleepPython .\sleep_settings.py --ac 0 --dc 0
-& $sleepPython .\sleep_settings.py --ac 30
-& $sleepPython .\sleep_settings.py --dc 15
+& $sleepPython .\main.py --ac 30 --dc 30
+& $sleepPython .\main.py --ac 0 --dc 0
+& $sleepPython .\main.py --ac 30
+& $sleepPython .\main.py --dc 15
 ```
 
 | 実行後 | 電源接続時（AC） | バッテリー時（DC） |
@@ -57,14 +58,15 @@ powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 
 ## 元に戻す
 
-最初に記録した AC/DC が整数の分数なら、その値を指定して元に戻します。例えば開始時に AC 0分、DC 45分だった場合は次を実行します。
+最初の変更前に記録された値を、`--restore` で秒単位のまま元に戻します。成功後、復元用の保存データは削除されます。
 
 ```powershell
-& $sleepPython .\sleep_settings.py --ac 0 --dc 45
+& $sleepPython .\main.py --restore
+& $sleepPython .\main.py --show
 powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 ```
 
-開始時の値が分単位で割り切れない場合は、記録した**秒数を10進数に変換**し、以下の `<AC秒数>` と `<DC秒数>` に入れて復元します。
+`--restore` に失敗した場合は復元データが残るため、原因を確認して再実行します。保存データを利用できない場合に限り、開始時に記録した**秒数を10進数に変換**し、以下の `<AC秒数>` と `<DC秒数>` に入れて手動で復元します。
 
 ```powershell
 powercfg /setacvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE <AC秒数>
